@@ -7,130 +7,153 @@
 // Cada nivel: grid (0=muro, 1=pintable), start, nombre, color, maxMoves
 var LEVELS = [
     {
-        // 5x6 - Espiral con trampa (si vas → primero, pierdes)
-        // Solucion: ↓→↓←→↑← (7 movimientos)
-        name: "Primer Trazo",
-        grid: [
-            [1,1,1,1,1,1],
-            [1,0,0,0,0,1],
-            [1,1,1,1,0,1],
-            [0,0,0,1,0,1],
-            [1,1,1,1,1,1]
-        ],
-        start: [0, 0],
-        color: '#E07A5F',
-        maxMoves: 14
-    },
-    {
-        // 6x6 - Espiral doble con giro reverso
-        // Solucion: →↓←↑←↓→ (7 movimientos)
-        name: "El Caracol",
-        grid: [
-            [1,1,1,1,1,1],
-            [0,0,0,0,0,1],
-            [1,1,1,1,0,1],
-            [1,0,0,1,0,1],
-            [1,0,0,1,1,1],
-            [1,1,1,1,0,0]
-        ],
-        start: [0, 0],
-        color: '#3D8B7A',
-        maxMoves: 14
-    },
-    {
-        // 7x7 - Espiral de dos capas
-        // Solucion: →↓←↑→↓← (7 movimientos)
-        name: "Doble Espiral",
-        grid: [
-            [1,1,1,1,1,1,1],
-            [0,0,0,0,0,0,1],
-            [1,1,1,1,1,0,1],
-            [1,0,0,0,1,0,1],
-            [1,0,1,1,1,0,1],
-            [1,0,0,0,0,0,1],
-            [1,1,1,1,1,1,1]
-        ],
-        start: [0, 0],
-        color: '#E6A23C',
-        maxMoves: 14
-    },
-    {
-        // 8x6 - Serpiente con bolsillo interior
-        // Solucion: →↓←↓→↑←↓ (8 movimientos)
-        name: "El Laberinto",
-        grid: [
-            [1,1,1,1,1,1],
-            [0,0,0,0,0,1],
-            [1,1,1,1,1,1],
-            [1,0,0,0,0,0],
-            [1,0,1,1,1,1],
-            [1,0,1,0,0,1],
-            [1,0,0,0,0,1],
-            [1,1,1,1,1,1]
-        ],
-        start: [0, 0],
-        color: '#7B68AE',
-        maxMoves: 15
-    },
-    {
-        // 9x6 - Espiral + extension serpiente
-        // Solucion: →↓←↑←↓→↓← (9 movimientos)
-        name: "La Serpiente",
-        grid: [
-            [1,1,1,1,1,1],
-            [0,0,0,0,0,1],
-            [1,1,1,1,0,1],
-            [1,0,0,1,0,1],
-            [1,0,0,1,1,1],
-            [1,0,0,0,0,0],
-            [1,1,1,1,1,1],
-            [0,0,0,0,0,1],
-            [1,1,1,1,1,1]
-        ],
-        start: [0, 0],
-        color: '#52B788',
-        maxMoves: 16
-    },
-    {
-        // 9x8 - Triple espiral (3 capas)
-        // Solucion: →↓←↑→↓←↑→ (9 movimientos)
-        name: "La Fortaleza",
+        // 8x8 - Doble bucle conectado por pasajes estrechos
+        // 38 celdas, 12 movimientos optimos
+        name: "Doble Bucle",
         grid: [
             [1,1,1,1,1,1,1,1],
-            [0,0,0,0,0,0,0,1],
-            [1,1,1,1,1,1,0,1],
-            [1,0,0,0,0,1,0,1],
-            [1,0,1,1,0,1,0,1],
-            [1,0,1,0,0,1,0,1],
-            [1,0,1,1,1,1,0,1],
+            [1,0,0,0,0,0,0,1],
+            [1,1,1,0,1,1,1,1],
+            [0,0,1,0,1,0,0,0],
+            [0,0,1,0,1,0,0,0],
+            [1,1,1,0,1,1,1,1],
             [1,0,0,0,0,0,0,1],
             [1,1,1,1,1,1,1,1]
         ],
         start: [0, 0],
-        color: '#C44569',
+        color: '#E07A5F',
+        maxMoves: 15
+    },
+    {
+        // 9x8 - Zigzag largo con secciones desconectadas
+        // 36 celdas, 13 movimientos optimos
+        name: "El Zigzag",
+        grid: [
+            [1,1,1,1,1,1,1,1],
+            [0,0,0,0,0,0,0,1],
+            [1,1,1,0,1,1,1,1],
+            [1,0,1,0,1,0,0,0],
+            [1,0,1,1,1,0,0,0],
+            [1,0,0,0,0,0,0,0],
+            [1,1,1,1,0,1,1,1],
+            [0,0,0,1,0,1,0,0],
+            [0,0,0,1,1,1,0,0]
+        ],
+        start: [0, 0],
+        color: '#3D8B7A',
         maxMoves: 16
     },
     {
-        // 12x6 - Bolsillo interior + serpiente + retroceso obligatorio
-        // Solucion: →↓←↓→↑←↓↑→↓↓←↓→ (15 movimientos, 3 de retroceso)
+        // 11x8 - Serpiente que desemboca en una H-Room
+        // 52 celdas, 15 movimientos optimos
+        name: "Serpiente Real",
+        grid: [
+            [1,1,1,1,1,1,1,1],
+            [0,0,0,0,0,0,0,1],
+            [1,1,1,1,1,1,1,1],
+            [1,0,0,0,0,0,0,0],
+            [1,1,1,0,1,1,1,1],
+            [1,0,1,0,1,0,0,1],
+            [1,0,1,1,1,0,0,1],
+            [1,0,0,0,0,0,0,1],
+            [1,0,1,1,1,0,0,1],
+            [1,0,1,0,1,0,0,1],
+            [1,1,1,0,1,1,1,1]
+        ],
+        start: [0, 0],
+        color: '#E6A23C',
+        maxMoves: 18
+    },
+    {
+        // 11x8 - Bucle doble que conecta con cola de serpiente
+        // 48 celdas, 17 movimientos optimos (2 de retroceso)
+        name: "Circuito Cerrado",
+        grid: [
+            [1,1,1,1,1,1,1,1],
+            [1,0,0,0,0,0,0,1],
+            [1,1,1,0,1,1,1,1],
+            [0,0,1,0,1,0,0,0],
+            [0,0,1,0,1,0,0,0],
+            [1,1,1,0,1,1,1,1],
+            [1,0,0,0,0,0,0,1],
+            [1,1,1,1,1,1,1,1],
+            [0,0,0,0,0,0,0,1],
+            [1,1,1,1,1,1,1,1],
+            [1,0,0,0,0,0,0,0]
+        ],
+        start: [0, 0],
+        color: '#7B68AE',
+        maxMoves: 20
+    },
+    {
+        // 11x9 - H-Room que transiciona a serpiente
+        // 56 celdas, 19 movimientos optimos (3 de retroceso)
+        name: "La Fortaleza",
+        grid: [
+            [1,1,1,1,0,1,1,1,1],
+            [1,0,0,1,0,1,0,0,1],
+            [1,0,0,1,1,1,0,0,1],
+            [1,0,0,0,0,0,0,0,1],
+            [1,0,0,1,1,1,0,0,1],
+            [1,0,0,1,0,1,0,0,1],
+            [1,1,1,1,0,1,1,1,1],
+            [0,0,0,0,0,0,0,0,1],
+            [1,1,1,1,1,1,1,1,1],
+            [1,0,0,0,0,0,0,0,0],
+            [1,1,1,1,1,1,1,1,1]
+        ],
+        start: [0, 0],
+        color: '#52B788',
+        maxMoves: 22
+    },
+    {
+        // 14x8 - Tres bucles enlazados verticalmente
+        // 59 celdas, 21 movimientos optimos
+        name: "Triple Anillo",
+        grid: [
+            [1,1,1,1,1,1,1,1],
+            [1,0,0,0,0,0,0,1],
+            [1,1,1,0,1,1,1,1],
+            [0,0,1,0,1,0,0,0],
+            [0,0,1,0,1,0,0,0],
+            [1,1,1,0,1,1,1,1],
+            [1,0,0,0,0,0,0,1],
+            [1,1,1,0,1,1,1,1],
+            [0,0,1,0,1,0,0,0],
+            [0,0,1,0,1,0,0,0],
+            [1,1,1,0,1,1,1,1],
+            [1,0,0,0,0,0,0,1],
+            [1,1,1,1,1,1,1,1],
+            [0,0,0,0,0,0,0,1]
+        ],
+        start: [0, 0],
+        color: '#C44569',
+        maxMoves: 24
+    },
+    {
+        // 15x9 - H-Room + serpiente + segunda H-Room
+        // 75 celdas, 24 movimientos optimos (2 de retroceso)
         name: "El Maestro",
         grid: [
-            [1,1,1,1,1,1],
-            [0,0,0,0,0,1],
-            [1,1,1,1,1,1],
-            [1,0,0,0,0,0],
-            [1,0,1,1,1,1],
-            [1,0,1,0,0,1],
-            [1,0,0,0,0,1],
-            [1,1,1,1,1,1],
-            [0,0,0,0,0,1],
-            [1,1,1,1,1,1],
-            [1,0,0,0,0,0],
-            [1,1,1,1,1,1]
+            [1,1,1,1,0,1,1,1,1],
+            [1,0,0,1,0,1,0,0,1],
+            [1,0,0,1,1,1,0,0,1],
+            [1,0,0,0,0,0,0,0,1],
+            [1,0,0,1,1,1,0,0,1],
+            [1,0,0,1,0,1,0,0,1],
+            [1,1,1,1,0,1,1,1,1],
+            [0,0,0,0,0,0,0,0,1],
+            [1,1,1,1,1,1,1,1,1],
+            [1,0,0,0,0,0,0,0,0],
+            [1,1,1,1,0,1,1,1,1],
+            [1,0,0,1,0,1,0,0,1],
+            [1,0,0,1,1,1,0,0,1],
+            [1,0,0,0,0,0,0,0,1],
+            [1,1,1,1,1,1,1,1,1]
         ],
         start: [0, 0],
         color: '#4A7FC1',
-        maxMoves: 22
+        maxMoves: 27
     }
 ];
 
@@ -335,7 +358,7 @@ function updateMoveDisplay() {
     var label = moveEl.parentElement;
     moveEl.textContent = moveCount;
 
-    if (moveCount >= level.maxMoves - 2 && moveCount < level.maxMoves) {
+    if (moveCount >= level.maxMoves - 3 && moveCount < level.maxMoves) {
         label.classList.add('danger');
     } else {
         label.classList.remove('danger');
@@ -348,9 +371,9 @@ function renderMaze() {
     var rows = level.grid.length;
     var cols = level.grid[0].length;
 
-    var maxWidth = Math.min(window.innerWidth - 48, 400);
-    var maxHeight = window.innerHeight - 180;
-    var gap = 4;
+    var maxWidth = Math.min(window.innerWidth - 32, 420);
+    var maxHeight = window.innerHeight - 160;
+    var gap = rows > 12 ? 3 : 4;
     var cellByWidth = Math.floor((maxWidth - gap * (cols - 1)) / cols);
     var cellByHeight = Math.floor((maxHeight - gap * (rows - 1)) / rows);
     var cellSize = Math.min(cellByWidth, cellByHeight, 80);
