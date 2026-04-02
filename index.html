@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Maze Paint - Desafio de Calculo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app">
+
+        <!-- ====== SPLASH SCREEN ====== -->
+        <div id="screen-splash" class="screen active">
+            <div class="splash-blobs">
+                <div class="blob" style="width:180px;height:180px;background:#E07A5F;top:-40px;left:-30px;"></div>
+                <div class="blob" style="width:120px;height:120px;background:#3D8B7A;top:15%;right:-20px;"></div>
+                <div class="blob" style="width:150px;height:150px;background:#E6A23C;bottom:20%;left:-40px;"></div>
+                <div class="blob" style="width:100px;height:100px;background:#7B68AE;bottom:10%;right:10%;"></div>
+                <div class="blob" style="width:90px;height:90px;background:#52B788;top:40%;left:20%;"></div>
+                <div class="blob" style="width:70px;height:70px;background:#C44569;top:60%;right:30%;"></div>
+            </div>
+            <div class="splash-content">
+                <div class="splash-title-wrap">
+                    <h1 class="splash-title">MAZE</h1>
+                    <h1 class="splash-title title-paint">PAINT</h1>
+                </div>
+                <p class="splash-subtitle">Desafio de Calculo</p>
+                <button class="btn btn-big" onclick="showNameInput()">JUGAR</button>
+            </div>
+        </div>
+
+        <!-- ====== NAME INPUT SCREEN ====== -->
+        <div id="screen-name" class="screen">
+            <div class="screen-inner">
+                <div class="name-card">
+                    <div class="card-accent"></div>
+                    <h2 class="screen-title">Como te llamas?</h2>
+                    <p class="screen-desc">Ingresa tu nombre para comenzar</p>
+                    <input type="text" id="player-name" class="name-input" placeholder="Tu nombre..." maxlength="20" autocomplete="off">
+                    <button class="btn" onclick="submitName()">CONTINUAR</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ====== LEVEL SELECT SCREEN ====== -->
+        <div id="screen-levels" class="screen">
+            <div class="screen-inner levels-inner">
+                <p id="welcome-msg" class="welcome-text"></p>
+                <h2 class="screen-title">Elige tu nivel</h2>
+                <div id="level-grid" class="level-grid"></div>
+                <button id="music-btn" class="btn btn-music" onclick="toggleMusic()">&#9835; Musica: OFF</button>
+            </div>
+        </div>
+
+        <!-- ====== GAME SCREEN ====== -->
+        <div id="screen-game" class="screen">
+            <div class="game-header">
+                <button class="btn-icon" onclick="goToLevels()" aria-label="Volver">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+                </button>
+                <div class="level-info">
+                    <span id="level-title" class="level-title-text"></span>
+                    <span id="level-subtitle" class="level-subtitle-text"></span>
+                </div>
+                <button class="btn-icon" onclick="resetLevel()" aria-label="Reiniciar">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+                </button>
+            </div>
+            <div class="game-body">
+                <div id="maze-wrapper" class="maze-wrapper">
+                    <div id="maze-container" class="maze-container"></div>
+                </div>
+                <div class="game-footer">
+                    <span class="move-label">Movimientos: <strong id="move-count">0</strong> / <strong id="max-moves">0</strong></span>
+                    <span class="hint-text">Desliza para mover</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- ====== QUESTION MODAL ====== -->
+        <div id="modal-question" class="modal">
+            <div class="modal-backdrop"></div>
+            <div class="modal-card">
+                <div class="modal-header">
+                    <span class="modal-badge" id="question-level">Nivel 1</span>
+                    <h2 class="modal-title">Nivel Completado!</h2>
+                    <p class="modal-desc">Responde correctamente para avanzar</p>
+                </div>
+                <div class="modal-body">
+                    <div id="question-content" class="question-content"></div>
+                    <div id="options-container" class="options-container"></div>
+                    <p id="question-feedback" class="feedback"></p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ====== VICTORY SCREEN ====== -->
+        <div id="screen-victory" class="screen">
+            <div class="screen-inner">
+                <div class="victory-card">
+                    <div class="victory-stars">
+                        <span class="star">&#9733;</span>
+                        <span class="star star-big">&#9733;</span>
+                        <span class="star">&#9733;</span>
+                    </div>
+                    <h2 class="victory-title">Felicitaciones!</h2>
+                    <p class="victory-msg"><span id="victory-name"></span>, completaste todos los niveles!</p>
+                    <p class="victory-sub">Dominaste el laberinto y el calculo</p>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Toast de notificaciones -->
+    <div id="toast" class="toast"></div>
+
+    <script src="questions.js"></script>
+    <script src="game.js"></script>
+</body>
+</html>
