@@ -45,6 +45,37 @@
             </div>
         </div>
 
+        <!-- ====== BLOCKED SCREEN (ya jugo) ====== -->
+        <div id="screen-blocked" class="screen">
+            <div class="screen-inner">
+                <div class="blocked-card">
+                    <div class="card-accent"></div>
+                    <div class="blocked-icon">&#128274;</div>
+                    <h2 class="screen-title">Ya completaste el desafio!</h2>
+                    <p class="blocked-name" id="blocked-name"></p>
+                    <div class="blocked-score-wrap">
+                        <span class="blocked-score-label">Tu puntaje final</span>
+                        <span class="blocked-score-value" id="blocked-score">0</span>
+                    </div>
+                    <p class="blocked-msg">Solo se permite un intento por persona. Espera a que el profesor muestre el podio!</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- ====== ADMIN SCREEN ====== -->
+        <div id="screen-admin" class="screen">
+            <div class="screen-inner">
+                <div class="admin-card">
+                    <div class="card-accent"></div>
+                    <div class="admin-icon">&#9881;</div>
+                    <h2 class="screen-title">Panel de Administrador</h2>
+                    <p class="screen-desc">Modo profesor activado</p>
+                    <button class="btn btn-big btn-podium" onclick="showPodium()">MOSTRAR PODIO</button>
+                    <p class="admin-count" id="admin-count"></p>
+                </div>
+            </div>
+        </div>
+
         <!-- ====== LEVEL SELECT SCREEN ====== -->
         <div id="screen-levels" class="screen">
             <div class="screen-inner levels-inner">
@@ -109,7 +140,56 @@
                     <h2 class="victory-title">Felicitaciones!</h2>
                     <p class="victory-msg"><span id="victory-name"></span>, completaste todos los niveles!</p>
                     <p class="victory-sub">Dominaste el laberinto y el calculo</p>
+                    <div class="victory-score-wrap">
+                        <span class="victory-score-label">Puntaje Final</span>
+                        <span class="victory-score-value" id="victory-score">0</span>
+                    </div>
                 </div>
+            </div>
+        </div>
+
+        <!-- ====== PODIUM SCREEN ====== -->
+        <div id="screen-podium" class="screen">
+            <div class="podium-bg">
+                <h1 class="podium-title" id="podium-title">PODIO</h1>
+                <div class="podium-subtitle" id="podium-subtitle">Los mejores jugadores</div>
+                <div class="podium-stage" id="podium-stage">
+                    <!-- 2nd place -->
+                    <div class="podium-col podium-2nd" id="podium-col-2">
+                        <div class="podium-player-info" id="podium-info-2">
+                            <span class="podium-player-score" id="podium-score-2">0</span>
+                            <span class="podium-player-name" id="podium-name-2">---</span>
+                        </div>
+                        <div class="podium-bar" id="podium-bar-2">
+                            <span class="podium-place">2</span>
+                        </div>
+                    </div>
+                    <!-- 1st place -->
+                    <div class="podium-col podium-1st" id="podium-col-1">
+                        <div class="podium-player-info" id="podium-info-1">
+                            <span class="podium-crown">&#9813;</span>
+                            <span class="podium-player-score" id="podium-score-1">0</span>
+                            <span class="podium-player-name" id="podium-name-1">---</span>
+                        </div>
+                        <div class="podium-bar" id="podium-bar-1">
+                            <span class="podium-place">1</span>
+                        </div>
+                    </div>
+                    <!-- 3rd place -->
+                    <div class="podium-col podium-3rd" id="podium-col-3">
+                        <div class="podium-player-info" id="podium-info-3">
+                            <span class="podium-player-score" id="podium-score-3">0</span>
+                            <span class="podium-player-name" id="podium-name-3">---</span>
+                        </div>
+                        <div class="podium-bar" id="podium-bar-3">
+                            <span class="podium-place">3</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="podium-empty" id="podium-empty" style="display:none;">
+                    <p>Aun no hay jugadores registrados</p>
+                </div>
+                <div id="confetti-container" class="confetti-container"></div>
             </div>
         </div>
 

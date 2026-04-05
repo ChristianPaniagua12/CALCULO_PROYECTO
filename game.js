@@ -5,6 +5,7 @@
 
 // ==================== NIVEL DATA ====================
 // Cada nivel: grid (0=muro, 1=pintable), start, nombre, color, maxMoves
+// maxMoves = movimientos optimos + 1 (casi cero margen de error)
 var LEVELS = [
     {
         // 8x8 - Doble bucle conectado por pasajes estrechos
@@ -22,7 +23,7 @@ var LEVELS = [
         ],
         start: [0, 0],
         color: '#E07A5F',
-        maxMoves: 15
+        maxMoves: 13
     },
     {
         // 9x8 - Zigzag largo con secciones desconectadas
@@ -41,7 +42,7 @@ var LEVELS = [
         ],
         start: [0, 0],
         color: '#3D8B7A',
-        maxMoves: 16
+        maxMoves: 14
     },
     {
         // 11x8 - Serpiente que desemboca en una H-Room
@@ -62,7 +63,7 @@ var LEVELS = [
         ],
         start: [0, 0],
         color: '#E6A23C',
-        maxMoves: 18
+        maxMoves: 16
     },
     {
         // 11x8 - Bucle doble que conecta con cola de serpiente
@@ -83,7 +84,7 @@ var LEVELS = [
         ],
         start: [0, 0],
         color: '#7B68AE',
-        maxMoves: 20
+        maxMoves: 18
     },
     {
         // 11x9 - H-Room que transiciona a serpiente
@@ -104,7 +105,7 @@ var LEVELS = [
         ],
         start: [0, 0],
         color: '#52B788',
-        maxMoves: 22
+        maxMoves: 20
     },
     {
         // 14x8 - Tres bucles enlazados verticalmente
@@ -128,7 +129,7 @@ var LEVELS = [
         ],
         start: [0, 0],
         color: '#C44569',
-        maxMoves: 24
+        maxMoves: 22
     },
     {
         // 15x9 - H-Room + serpiente + segunda H-Room
@@ -153,7 +154,7 @@ var LEVELS = [
         ],
         start: [0, 0],
         color: '#4A7FC1',
-        maxMoves: 27
+        maxMoves: 25
     }
 ];
 
@@ -165,6 +166,10 @@ var playerPos = { r: 0, c: 0 };
 var painted = [];
 var isAnimating = false;
 var moveCount = 0;
+var totalScore = 0;
+var levelScores = [];
+var gameCompleted = false;
+var apiAvailable = true;
 
 // Audio
 var audioCtx = null;
@@ -199,26 +204,89 @@ var touchStartTime = 0;
 
 // ==================== INIT ====================
 document.addEventListener('DOMContentLoaded', function() {
-    if (loadProgress()) {
-        showScreen('levels');
-        renderLevelSelect();
-    } else {
-        showScreen('splash');
-    }
     setupInputHandlers();
     window.addEventListener('resize', function() {
         if (currentLevel >= 0 && document.getElementById('screen-game').classList.contains('active')) {
             renderMaze();
         }
     });
+
+    // Check IP con el servidor
+    checkIP(function(result) {
+        if (result.played && result.data) {
+            // Esta IP ya jugo
+            showBlocked(result.data.name, result.data.score);
+        } else {
+            // IP libre, revisar localStorage
+            if (loadProgress()) {
+                if (gameCompleted) {
+                    // Completo todos los niveles pero la IP no esta registrada?
+                    // Puede pasar si el servidor estaba caido. Mostrar victoria.
+                    showScreen('victory');
+                    document.getElementById('victory-name').textContent = playerName;
+                    document.getElementById('victory-score').textContent = totalScore;
+                } else {
+                    showScreen('levels');
+                    renderLevelSelect();
+                }
+            } else {
+                showScreen('splash');
+            }
+        }
+    });
 });
+
+// ==================== API ====================
+function checkIP(callback) {
+    fetch('api.php?action=check_ip')
+        .then(function(r) { return r.json(); })
+        .then(function(data) {
+            apiAvailable = true;
+            callback(data);
+        })
+        .catch(function() {
+            apiAvailable = false;
+            // Sin servidor, usar solo localStorage
+            if (loadProgress()) {
+                if (gameCompleted) {
+                    showScreen('victory');
+                    document.getElementById('victory-name').textContent = playerName;
+                    document.getElementById('victory-score').textContent = totalScore;
+                } else {
+                    showScreen('levels');
+                    renderLevelSelect();
+                }
+            } else {
+                showScreen('splash');
+            }
+        });
+}
+
+function saveScoreToServer(name, score) {
+    if (!apiAvailable) return;
+    fetch('api.php?action=save_score', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name, score: score })
+    }).catch(function() {});
+}
+
+function fetchPodium(callback) {
+    fetch('api.php?action=get_podium')
+        .then(function(r) { return r.json(); })
+        .then(function(data) { callback(data); })
+        .catch(function() { callback({ podium: [], total: 0 }); });
+}
 
 // ==================== LOCAL STORAGE ====================
 function saveProgress() {
     try {
         localStorage.setItem('mazePaintCalculo', JSON.stringify({
             playerName: playerName,
-            completedLevels: completedLevels
+            completedLevels: completedLevels,
+            totalScore: totalScore,
+            levelScores: levelScores,
+            gameCompleted: gameCompleted
         }));
     } catch (e) {}
 }
@@ -229,6 +297,9 @@ function loadProgress() {
         if (data && data.playerName) {
             playerName = data.playerName;
             completedLevels = data.completedLevels || [];
+            totalScore = data.totalScore || 0;
+            levelScores = data.levelScores || [];
+            gameCompleted = data.gameCompleted || false;
             return true;
         }
     } catch (e) {}
@@ -260,11 +331,35 @@ function submitName() {
         setTimeout(function() { input.classList.remove('shake'); }, 500);
         return;
     }
+
+    // Modo administrador
+    if (name.toLowerCase() === 'superadministrador') {
+        showAdminScreen();
+        return;
+    }
+
     playerName = name;
     completedLevels = [];
+    totalScore = 0;
+    levelScores = [];
+    gameCompleted = false;
     saveProgress();
     showScreen('levels');
     renderLevelSelect();
+}
+
+function showBlocked(name, score) {
+    document.getElementById('blocked-name').textContent = name;
+    document.getElementById('blocked-score').textContent = score;
+    showScreen('blocked');
+}
+
+function showAdminScreen() {
+    showScreen('admin');
+    fetchPodium(function(data) {
+        var countEl = document.getElementById('admin-count');
+        countEl.textContent = data.total + ' jugador' + (data.total !== 1 ? 'es' : '') + ' registrado' + (data.total !== 1 ? 's' : '');
+    });
 }
 
 function showLevelSelect() {
@@ -542,6 +637,16 @@ function resetLevel() {
     if (currentLevel >= 0) startLevel(currentLevel);
 }
 
+// ==================== PUNTUACION ====================
+function calculateLevelScore() {
+    var level = LEVELS[currentLevel];
+    var optimal = level.maxMoves - 1;
+    if (moveCount <= optimal) {
+        return 200;
+    }
+    return 100;
+}
+
 // ==================== PREGUNTAS ====================
 function showQuestion() {
     var q = QUESTIONS[currentLevel];
@@ -587,7 +692,15 @@ function selectAnswer(index) {
         options[index].classList.add('correct');
         playSound('correct');
 
-        document.getElementById('question-feedback').textContent = 'Correcto!';
+        // Calcular puntaje del nivel
+        var score = calculateLevelScore();
+        levelScores[currentLevel] = score;
+        totalScore = 0;
+        for (var s = 0; s < levelScores.length; s++) {
+            totalScore += (levelScores[s] || 0);
+        }
+
+        document.getElementById('question-feedback').textContent = 'Correcto! +' + score + ' pts';
         document.getElementById('question-feedback').className = 'feedback correct';
 
         for (var i = 0; i < options.length; i++) {
@@ -596,8 +709,8 @@ function selectAnswer(index) {
 
         if (completedLevels.indexOf(currentLevel) === -1) {
             completedLevels.push(currentLevel);
-            saveProgress();
         }
+        saveProgress();
 
         setTimeout(function() {
             document.getElementById('modal-question').classList.remove('active');
@@ -630,16 +743,185 @@ function selectAnswer(index) {
 }
 
 function showVictory() {
+    gameCompleted = true;
+    saveProgress();
+
     document.getElementById('victory-name').textContent = playerName;
+    document.getElementById('victory-score').textContent = totalScore;
     showScreen('victory');
     playSound('victory');
+
+    // Guardar en servidor
+    saveScoreToServer(playerName, totalScore);
 }
 
-function resetGame() {
-    playerName = '';
-    completedLevels = [];
-    localStorage.removeItem('mazePaintCalculo');
-    showScreen('splash');
+// ==================== PODIO ====================
+function showPodium() {
+    showScreen('podium');
+
+    // Reset state
+    var title = document.getElementById('podium-title');
+    var subtitle = document.getElementById('podium-subtitle');
+    var stage = document.getElementById('podium-stage');
+    var empty = document.getElementById('podium-empty');
+    var confetti = document.getElementById('confetti-container');
+
+    title.classList.remove('podium-title-in');
+    subtitle.classList.remove('podium-subtitle-in');
+    confetti.innerHTML = '';
+    stage.style.display = 'none';
+    empty.style.display = 'none';
+
+    // Reset bars and info
+    for (var p = 1; p <= 3; p++) {
+        var bar = document.getElementById('podium-bar-' + p);
+        var info = document.getElementById('podium-info-' + p);
+        var col = document.getElementById('podium-col-' + p);
+        if (bar) bar.style.height = '0';
+        if (info) info.style.opacity = '0';
+        if (col) col.style.display = 'flex';
+    }
+
+    fetchPodium(function(data) {
+        var podium = data.podium || [];
+
+        // Titulo entra
+        setTimeout(function() {
+            title.classList.add('podium-title-in');
+            playSound('move');
+        }, 300);
+
+        // Subtitulo
+        setTimeout(function() {
+            subtitle.classList.add('podium-subtitle-in');
+        }, 900);
+
+        if (podium.length === 0) {
+            setTimeout(function() {
+                empty.style.display = 'block';
+            }, 1400);
+            return;
+        }
+
+        // Preparar datos
+        var places = [null, null, null]; // index 0=1st, 1=2nd, 2=3rd
+        if (podium[0]) places[0] = podium[0];
+        if (podium[1]) places[1] = podium[1];
+        if (podium[2]) places[2] = podium[2];
+
+        // Ocultar columnas sin datos
+        if (!places[1]) document.getElementById('podium-col-2').style.display = 'none';
+        if (!places[2]) document.getElementById('podium-col-3').style.display = 'none';
+
+        // Llenar datos
+        if (places[0]) {
+            document.getElementById('podium-name-1').textContent = places[0].name;
+            document.getElementById('podium-score-1').textContent = places[0].score + ' pts';
+        }
+        if (places[1]) {
+            document.getElementById('podium-name-2').textContent = places[1].name;
+            document.getElementById('podium-score-2').textContent = places[1].score + ' pts';
+        }
+        if (places[2]) {
+            document.getElementById('podium-name-3').textContent = places[2].name;
+            document.getElementById('podium-score-3').textContent = places[2].score + ' pts';
+        }
+
+        setTimeout(function() {
+            stage.style.display = 'flex';
+        }, 1400);
+
+        // ---- ANIMACION SECUENCIAL ----
+
+        // 3er lugar
+        var t = 2000;
+        if (places[2]) {
+            setTimeout(function() {
+                playDrumRoll();
+                var bar3 = document.getElementById('podium-bar-3');
+                bar3.style.transition = 'height 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)';
+                bar3.style.height = '120px';
+            }, t);
+
+            setTimeout(function() {
+                var info3 = document.getElementById('podium-info-3');
+                info3.style.transition = 'opacity 0.5s ease';
+                info3.style.opacity = '1';
+            }, t + 900);
+
+            t += 2000;
+        }
+
+        // 2do lugar
+        if (places[1]) {
+            setTimeout(function() {
+                playDrumRoll();
+                var bar2 = document.getElementById('podium-bar-2');
+                bar2.style.transition = 'height 0.8s cubic-bezier(0.34, 1.56, 0.64, 1)';
+                bar2.style.height = '170px';
+            }, t);
+
+            setTimeout(function() {
+                var info2 = document.getElementById('podium-info-2');
+                info2.style.transition = 'opacity 0.5s ease';
+                info2.style.opacity = '1';
+            }, t + 900);
+
+            t += 2000;
+        }
+
+        // 1er lugar
+        if (places[0]) {
+            setTimeout(function() {
+                playFanfare();
+                var bar1 = document.getElementById('podium-bar-1');
+                bar1.style.transition = 'height 1s cubic-bezier(0.34, 1.56, 0.64, 1)';
+                bar1.style.height = '220px';
+            }, t);
+
+            setTimeout(function() {
+                var info1 = document.getElementById('podium-info-1');
+                info1.style.transition = 'opacity 0.6s ease';
+                info1.style.opacity = '1';
+            }, t + 1100);
+
+            // Confetti
+            setTimeout(function() {
+                spawnConfetti();
+            }, t + 1400);
+        }
+    });
+}
+
+function spawnConfetti() {
+    var container = document.getElementById('confetti-container');
+    container.innerHTML = '';
+    var colors = ['#FFD700', '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DDA0DD', '#FF8C00', '#7B68AE', '#E07A5F'];
+
+    for (var i = 0; i < 80; i++) {
+        var piece = document.createElement('div');
+        piece.className = 'confetti-piece';
+        var color = colors[Math.floor(Math.random() * colors.length)];
+        var left = Math.random() * 100;
+        var delay = Math.random() * 2.5;
+        var duration = 2.5 + Math.random() * 2;
+        var drift = (Math.random() - 0.5) * 120;
+        var size = 6 + Math.random() * 8;
+        var rotation = Math.random() * 720;
+
+        piece.style.cssText =
+            'left:' + left + '%;' +
+            'width:' + size + 'px;' +
+            'height:' + (size * (0.4 + Math.random() * 0.6)) + 'px;' +
+            'background:' + color + ';' +
+            'animation-delay:' + delay + 's;' +
+            'animation-duration:' + duration + 's;' +
+            '--drift:' + drift + 'px;' +
+            '--rotation:' + rotation + 'deg;' +
+            'border-radius:' + (Math.random() > 0.5 ? '50%' : '2px') + ';';
+
+        container.appendChild(piece);
+    }
 }
 
 // ==================== AUDIO ====================
@@ -863,6 +1145,73 @@ function playSound(type) {
     } catch (e) {}
 }
 
+function playDrumRoll() {
+    if (!audioCtx) initAudio();
+    if (!audioCtx) return;
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+
+    var now = audioCtx.currentTime;
+    try {
+        // Redoble rapido de 6 golpes
+        for (var i = 0; i < 6; i++) {
+            (function(delay) {
+                var osc = audioCtx.createOscillator();
+                var g = audioCtx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.value = 180 + Math.random() * 40;
+                var t = now + delay;
+                var vol = 0.04 + (delay / 0.6) * 0.06;
+                g.gain.setValueAtTime(vol, t);
+                g.gain.exponentialRampToValueAtTime(0.001, t + 0.1);
+                osc.connect(g); g.connect(masterGain);
+                osc.start(t); osc.stop(t + 0.12);
+            })(i * 0.09);
+        }
+        // Golpe final
+        var osc2 = audioCtx.createOscillator();
+        var g2 = audioCtx.createGain();
+        osc2.type = 'triangle';
+        osc2.frequency.value = 120;
+        var tf = now + 0.55;
+        g2.gain.setValueAtTime(0.12, tf);
+        g2.gain.exponentialRampToValueAtTime(0.001, tf + 0.25);
+        osc2.connect(g2); g2.connect(masterGain);
+        osc2.start(tf); osc2.stop(tf + 0.3);
+    } catch (e) {}
+}
+
+function playFanfare() {
+    if (!audioCtx) initAudio();
+    if (!audioCtx) return;
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+
+    var now = audioCtx.currentTime;
+    try {
+        // Fanfarria triunfal: acorde mayor ascendente
+        var notes = [
+            { freq: 392.00, delay: 0, dur: 0.3 },
+            { freq: 493.88, delay: 0.15, dur: 0.3 },
+            { freq: 587.33, delay: 0.3, dur: 0.3 },
+            { freq: 783.99, delay: 0.5, dur: 0.6 },
+            { freq: 659.25, delay: 0.5, dur: 0.6 },
+            { freq: 523.25, delay: 0.5, dur: 0.6 }
+        ];
+        for (var i = 0; i < notes.length; i++) {
+            (function(n) {
+                var osc = audioCtx.createOscillator();
+                var g = audioCtx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.value = n.freq;
+                var t = now + n.delay;
+                g.gain.setValueAtTime(0.1, t);
+                g.gain.exponentialRampToValueAtTime(0.005, t + n.dur);
+                osc.connect(g); g.connect(masterGain);
+                osc.start(t); osc.stop(t + n.dur + 0.05);
+            })(notes[i]);
+        }
+    } catch (e) {}
+}
+
 // ==================== INPUT ====================
 function setupInputHandlers() {
     document.addEventListener('touchstart', function(e) {
@@ -895,6 +1244,27 @@ function setupInputHandlers() {
             handleMove(dx > 0 ? 'right' : 'left');
         } else {
             handleMove(dy > 0 ? 'down' : 'up');
+        }
+    });
+
+    // Reset secreto: 15 clicks en menos de 5 segundos
+    var secretClicks = [];
+    document.addEventListener('click', function() {
+        var now = Date.now();
+        secretClicks.push(now);
+        // Mantener solo los ultimos 15
+        if (secretClicks.length > 15) secretClicks.shift();
+        if (secretClicks.length === 15 && (now - secretClicks[0]) < 5000) {
+            secretClicks = [];
+            localStorage.removeItem('mazePaintCalculo');
+            playerName = '';
+            completedLevels = [];
+            totalScore = 0;
+            levelScores = [];
+            gameCompleted = false;
+            currentLevel = -1;
+            fetch('api.php?action=delete_ip', { method: 'POST' }).catch(function() {});
+            showScreen('splash');
         }
     });
 
