@@ -168,6 +168,8 @@ var isAnimating = false;
 var moveCount = 0;
 var totalScore = 0;
 var levelScores = [];
+var totalPenalties = 0;
+var gameStartTime = 0;
 var gameCompleted = false;
 var apiAvailable = true;
 
@@ -262,12 +264,12 @@ function checkIP(callback) {
         });
 }
 
-function saveScoreToServer(name, score) {
+function saveScoreToServer(name, score, time) {
     if (!apiAvailable) return;
     fetch('api.php?action=save_score', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: name, score: score })
+        body: JSON.stringify({ name: name, score: score, time: time || 0 })
     }).catch(function() {});
 }
 
@@ -286,6 +288,8 @@ function saveProgress() {
             completedLevels: completedLevels,
             totalScore: totalScore,
             levelScores: levelScores,
+            totalPenalties: totalPenalties,
+            gameStartTime: gameStartTime,
             gameCompleted: gameCompleted
         }));
     } catch (e) {}
@@ -299,6 +303,8 @@ function loadProgress() {
             completedLevels = data.completedLevels || [];
             totalScore = data.totalScore || 0;
             levelScores = data.levelScores || [];
+            totalPenalties = data.totalPenalties || 0;
+            gameStartTime = data.gameStartTime || 0;
             gameCompleted = data.gameCompleted || false;
             return true;
         }
@@ -342,6 +348,8 @@ function submitName() {
     completedLevels = [];
     totalScore = 0;
     levelScores = [];
+    totalPenalties = 0;
+    gameStartTime = Date.now();
     gameCompleted = false;
     saveProgress();
     showScreen('levels');
@@ -517,6 +525,7 @@ function renderMaze() {
 
 function handleMove(direction) {
     if (isAnimating || currentLevel < 0) return;
+    if (moveCount >= LEVELS[currentLevel].maxMoves) return;
 
     var level = LEVELS[currentLevel];
     var rows = level.grid.length;
@@ -584,13 +593,14 @@ function handleMove(direction) {
         if (isLevelComplete()) {
             setTimeout(celebrateAndShowQuestion, 350);
         } else if (moveCount >= level.maxMoves) {
+            isAnimating = true; // Bloquear inmediatamente
+            totalPenalties += 25;
+            saveProgress();
+            playSound('fail');
+            showToast('Sin movimientos! -25 pts', 1800);
             setTimeout(function() {
-                playSound('fail');
-                showToast('Sin movimientos! Intenta de nuevo', 1800);
-                setTimeout(function() {
-                    startLevel(currentLevel);
-                }, 2000);
-            }, 200);
+                startLevel(currentLevel);
+            }, 2000);
         }
     }, duration * 1000 + 80);
 }
@@ -699,6 +709,7 @@ function selectAnswer(index) {
         for (var s = 0; s < levelScores.length; s++) {
             totalScore += (levelScores[s] || 0);
         }
+        totalScore = Math.max(0, totalScore - totalPenalties);
 
         document.getElementById('question-feedback').textContent = 'Correcto! +' + score + ' pts';
         document.getElementById('question-feedback').className = 'feedback correct';
@@ -724,8 +735,10 @@ function selectAnswer(index) {
     } else {
         options[index].classList.add('wrong', 'shake');
         playSound('wrong');
+        totalPenalties += 50;
+        saveProgress();
 
-        document.getElementById('question-feedback').textContent = 'Incorrecto! Debes repetir el nivel';
+        document.getElementById('question-feedback').textContent = 'Incorrecto! -50 pts. Debes repetir el nivel';
         document.getElementById('question-feedback').className = 'feedback wrong';
 
         for (var i = 0; i < options.length; i++) {
@@ -744,15 +757,33 @@ function selectAnswer(index) {
 
 function showVictory() {
     gameCompleted = true;
+
+    // Recalcular score con penalidades
+    var rawScore = 0;
+    for (var s = 0; s < levelScores.length; s++) {
+        rawScore += (levelScores[s] || 0);
+    }
+    totalScore = Math.max(0, rawScore - totalPenalties);
+
+    // Tiempo transcurrido
+    var elapsedSeconds = gameStartTime ? Math.floor((Date.now() - gameStartTime) / 1000) : 0;
+
     saveProgress();
 
     document.getElementById('victory-name').textContent = playerName;
     document.getElementById('victory-score').textContent = totalScore;
+
+    // Mostrar tiempo
+    var mins = Math.floor(elapsedSeconds / 60);
+    var secs = elapsedSeconds % 60;
+    var timeEl = document.getElementById('victory-time');
+    if (timeEl) timeEl.textContent = mins + ':' + (secs < 10 ? '0' : '') + secs;
+
     showScreen('victory');
     playSound('victory');
 
-    // Guardar en servidor
-    saveScoreToServer(playerName, totalScore);
+    // Guardar en servidor con tiempo
+    saveScoreToServer(playerName, totalScore, elapsedSeconds);
 }
 
 // ==================== PODIO ====================
@@ -814,17 +845,30 @@ function showPodium() {
         if (!places[2]) document.getElementById('podium-col-3').style.display = 'none';
 
         // Llenar datos
+        function formatTime(seconds) {
+            if (!seconds && seconds !== 0) return '';
+            var m = Math.floor(seconds / 60);
+            var s = seconds % 60;
+            return m + ':' + (s < 10 ? '0' : '') + s;
+        }
+
         if (places[0]) {
             document.getElementById('podium-name-1').textContent = places[0].name;
-            document.getElementById('podium-score-1').textContent = places[0].score + ' pts';
+            var txt1 = places[0].score + ' pts';
+            if (places[0].time != null) txt1 += ' (' + formatTime(places[0].time) + ')';
+            document.getElementById('podium-score-1').textContent = txt1;
         }
         if (places[1]) {
             document.getElementById('podium-name-2').textContent = places[1].name;
-            document.getElementById('podium-score-2').textContent = places[1].score + ' pts';
+            var txt2 = places[1].score + ' pts';
+            if (places[1].time != null) txt2 += ' (' + formatTime(places[1].time) + ')';
+            document.getElementById('podium-score-2').textContent = txt2;
         }
         if (places[2]) {
             document.getElementById('podium-name-3').textContent = places[2].name;
-            document.getElementById('podium-score-3').textContent = places[2].score + ' pts';
+            var txt3 = places[2].score + ' pts';
+            if (places[2].time != null) txt3 += ' (' + formatTime(places[2].time) + ')';
+            document.getElementById('podium-score-3').textContent = txt3;
         }
 
         setTimeout(function() {
@@ -1261,6 +1305,8 @@ function setupInputHandlers() {
             completedLevels = [];
             totalScore = 0;
             levelScores = [];
+            totalPenalties = 0;
+            gameStartTime = 0;
             gameCompleted = false;
             currentLevel = -1;
             fetch('api.php?action=delete_ip', { method: 'POST' }).catch(function() {});

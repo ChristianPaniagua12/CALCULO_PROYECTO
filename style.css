@@ -886,6 +886,14 @@ body {
     50% { text-shadow: 0 0 25px rgba(212, 98, 43, 0.35); }
 }
 
+.victory-time-label {
+    display: block;
+    font-size: 1rem;
+    color: #8B7355;
+    margin-top: 0.3rem;
+    font-weight: 600;
+}
+
 /* ---------- PODIUM SCREEN ---------- */
 #screen-podium {
     background-image: none;

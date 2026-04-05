@@ -51,7 +51,8 @@ switch ($action) {
                 $found = true;
                 $playerData = [
                     'name' => $entry['name'],
-                    'score' => $entry['score']
+                    'score' => $entry['score'],
+                    'time' => $entry['time'] ?? null
                 ];
                 break;
             }
@@ -77,6 +78,7 @@ switch ($action) {
         $scores[] = [
             'name' => mb_substr(trim($input['name']), 0, 20),
             'score' => intval($input['score']),
+            'time' => isset($input['time']) ? intval($input['time']) : 0,
             'ip' => $ip,
             'timestamp' => time()
         ];
@@ -87,14 +89,19 @@ switch ($action) {
     case 'get_podium':
         $scores = loadScores();
         usort($scores, function($a, $b) {
-            return $b['score'] - $a['score'];
+            if ($b['score'] !== $a['score']) {
+                return $b['score'] - $a['score'];
+            }
+            // Desempate: menor tiempo = mejor posicion
+            return ($a['time'] ?? PHP_INT_MAX) - ($b['time'] ?? PHP_INT_MAX);
         });
         $podium = [];
         $top = array_slice($scores, 0, 3);
         foreach ($top as $entry) {
             $podium[] = [
                 'name' => $entry['name'],
-                'score' => $entry['score']
+                'score' => $entry['score'],
+                'time' => $entry['time'] ?? null
             ];
         }
         echo json_encode(['podium' => $podium, 'total' => count($scores)]);
