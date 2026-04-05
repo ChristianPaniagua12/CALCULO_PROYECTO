@@ -1,7 +1,8 @@
 <?php
 // ==============================================
 // MAZE PAINT - API Backend
-// Almacena puntajes y controla acceso por IP
+// Almacena puntajes y controla acceso por nombre
+// Guarda IP para referencia del administrador
 // ==============================================
 
 header('Content-Type: application/json; charset=utf-8');
@@ -9,7 +10,6 @@ header('Content-Type: application/json; charset=utf-8');
 $DATA_DIR = __DIR__ . '/data';
 $DATA_FILE = $DATA_DIR . '/scores.json';
 
-// Crear directorio data si no existe
 if (!file_exists($DATA_DIR)) {
     mkdir($DATA_DIR, 0777, true);
 }
@@ -36,17 +36,22 @@ function getClientIP() {
     return $_SERVER['REMOTE_ADDR'];
 }
 
+function normalizeName($name) {
+    return mb_strtolower(trim($name));
+}
+
 $action = isset($_GET['action']) ? $_GET['action'] : '';
-$ip = getClientIP();
 
 switch ($action) {
 
-    case 'check_ip':
+    case 'check_name':
+        $name = isset($_GET['name']) ? $_GET['name'] : '';
+        $nameNorm = normalizeName($name);
         $scores = loadScores();
         $found = false;
         $playerData = null;
         foreach ($scores as $entry) {
-            if ($entry['ip'] === $ip) {
+            if (normalizeName($entry['name']) === $nameNorm) {
                 $found = true;
                 $playerData = [
                     'name' => $entry['name'],
@@ -67,8 +72,9 @@ switch ($action) {
             break;
         }
         $scores = loadScores();
+        $nameNorm = normalizeName($input['name']);
         foreach ($scores as $entry) {
-            if ($entry['ip'] === $ip) {
+            if (normalizeName($entry['name']) === $nameNorm) {
                 echo json_encode(['error' => 'Ya jugaste', 'success' => false]);
                 break 2;
             }
@@ -77,7 +83,7 @@ switch ($action) {
             'name' => mb_substr(trim($input['name']), 0, 20),
             'score' => intval($input['score']),
             'time' => isset($input['time']) ? intval($input['time']) : 0,
-            'ip' => $ip,
+            'ip' => getClientIP(),
             'timestamp' => time()
         ];
         saveScores($scores);
@@ -104,11 +110,13 @@ switch ($action) {
         echo json_encode(['podium' => $podium, 'total' => count($scores)]);
         break;
 
-    case 'delete_ip':
+    case 'delete_name':
+        $name = isset($_GET['name']) ? $_GET['name'] : '';
+        $nameNorm = normalizeName($name);
         $scores = loadScores();
         $filtered = [];
         foreach ($scores as $entry) {
-            if ($entry['ip'] !== $ip) {
+            if (normalizeName($entry['name']) !== $nameNorm) {
                 $filtered[] = $entry;
             }
         }
