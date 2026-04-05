@@ -171,7 +171,6 @@ var levelScores = [];
 var totalPenalties = 0;
 var gameStartTime = 0;
 var gameCompleted = false;
-var apiAvailable = true;
 var API_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
     ? 'api.php'
     : '/.netlify/functions/api';
@@ -216,7 +215,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Revisar localStorage al iniciar
+    // Revisar sessionStorage al iniciar
     if (loadProgress()) {
         if (gameCompleted) {
             showScreen('victory');
@@ -232,21 +231,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // ==================== API ====================
-function checkName(name, callback) {
-    fetch(API_BASE + '?action=check_name&name=' + encodeURIComponent(name))
-        .then(function(r) { return r.json(); })
-        .then(function(data) {
-            apiAvailable = true;
-            callback(data);
-        })
-        .catch(function() {
-            apiAvailable = false;
-            callback({ played: false });
-        });
-}
-
 function saveScoreToServer(name, score, time) {
-    if (!apiAvailable) return;
     fetch(API_BASE + '?action=save_score', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -264,7 +249,7 @@ function fetchPodium(callback) {
 // ==================== LOCAL STORAGE ====================
 function saveProgress() {
     try {
-        localStorage.setItem('mazePaintCalculo', JSON.stringify({
+        sessionStorage.setItem('mazePaintCalculo', JSON.stringify({
             playerName: playerName,
             completedLevels: completedLevels,
             totalScore: totalScore,
@@ -278,7 +263,7 @@ function saveProgress() {
 
 function loadProgress() {
     try {
-        var data = JSON.parse(localStorage.getItem('mazePaintCalculo'));
+        var data = JSON.parse(sessionStorage.getItem('mazePaintCalculo'));
         if (data && data.playerName) {
             playerName = data.playerName;
             completedLevels = data.completedLevels || [];
@@ -325,29 +310,16 @@ function submitName() {
         return;
     }
 
-    // Verificar con el servidor si este nombre ya jugo
-    checkName(name, function(result) {
-        if (result.played && result.data) {
-            showBlocked(result.data.name, result.data.score);
-        } else {
-            playerName = name;
-            completedLevels = [];
-            totalScore = 0;
-            levelScores = [];
-            totalPenalties = 0;
-            gameStartTime = Date.now();
-            gameCompleted = false;
-            saveProgress();
-            showScreen('levels');
-            renderLevelSelect();
-        }
-    });
-}
-
-function showBlocked(name, score) {
-    document.getElementById('blocked-name').textContent = name;
-    document.getElementById('blocked-score').textContent = score;
-    showScreen('blocked');
+    playerName = name;
+    completedLevels = [];
+    totalScore = 0;
+    levelScores = [];
+    totalPenalties = 0;
+    gameStartTime = Date.now();
+    gameCompleted = false;
+    saveProgress();
+    showScreen('levels');
+    renderLevelSelect();
 }
 
 function showAdminScreen() {
@@ -1288,7 +1260,7 @@ function setupInputHandlers() {
         if (secretClicks.length > 15) secretClicks.shift();
         if (secretClicks.length === 15 && (now - secretClicks[0]) < 5000) {
             secretClicks = [];
-            localStorage.removeItem('mazePaintCalculo');
+            sessionStorage.removeItem('mazePaintCalculo');
             playerName = '';
             completedLevels = [];
             totalScore = 0;
@@ -1297,7 +1269,6 @@ function setupInputHandlers() {
             gameStartTime = 0;
             gameCompleted = false;
             currentLevel = -1;
-            fetch(API_BASE + '?action=delete_name&name=' + encodeURIComponent(playerName), { method: 'POST' }).catch(function() {});
             showScreen('splash');
         }
     });
