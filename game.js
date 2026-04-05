@@ -172,6 +172,9 @@ var totalPenalties = 0;
 var gameStartTime = 0;
 var gameCompleted = false;
 var apiAvailable = true;
+var API_BASE = (location.hostname === 'localhost' || location.hostname === '127.0.0.1')
+    ? 'api.php'
+    : '/.netlify/functions/api';
 
 // Audio
 var audioCtx = null;
@@ -240,7 +243,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ==================== API ====================
 function checkIP(callback) {
-    fetch('api.php?action=check_ip')
+    fetch(API_BASE + '?action=check_ip')
         .then(function(r) { return r.json(); })
         .then(function(data) {
             apiAvailable = true;
@@ -266,7 +269,7 @@ function checkIP(callback) {
 
 function saveScoreToServer(name, score, time) {
     if (!apiAvailable) return;
-    fetch('api.php?action=save_score', {
+    fetch(API_BASE + '?action=save_score', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: name, score: score, time: time || 0 })
@@ -274,7 +277,7 @@ function saveScoreToServer(name, score, time) {
 }
 
 function fetchPodium(callback) {
-    fetch('api.php?action=get_podium')
+    fetch(API_BASE + '?action=get_podium')
         .then(function(r) { return r.json(); })
         .then(function(data) { callback(data); })
         .catch(function() { callback({ podium: [], total: 0 }); });
@@ -1309,7 +1312,7 @@ function setupInputHandlers() {
             gameStartTime = 0;
             gameCompleted = false;
             currentLevel = -1;
-            fetch('api.php?action=delete_ip', { method: 'POST' }).catch(function() {});
+            fetch(API_BASE + '?action=delete_ip', { method: 'POST' }).catch(function() {});
             showScreen('splash');
         }
     });
