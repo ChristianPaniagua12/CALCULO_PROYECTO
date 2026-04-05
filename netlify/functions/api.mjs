@@ -4,6 +4,12 @@ export default async (req, context) => {
     const url = new URL(req.url);
     const action = url.searchParams.get("action");
     const store = getStore("maze-paint-data");
+    const ip = context.ip
+        || req.headers.get("x-nf-client-connection-ip")
+        || req.headers.get("cf-connecting-ip")
+        || req.headers.get("x-real-ip")
+        || req.headers.get("x-forwarded-for")
+        || "unknown";
     const headers = { "Content-Type": "application/json; charset=utf-8" };
 
     async function loadScores() {
@@ -19,20 +25,14 @@ export default async (req, context) => {
         await store.setJSON("scores", scores);
     }
 
-    function normalizeName(n) {
-        return (n || "").trim().toLowerCase();
-    }
-
     switch (action) {
 
-        case "check_name": {
-            var nameParam = url.searchParams.get("name") || "";
-            var nameNorm = normalizeName(nameParam);
+        case "check_ip": {
             var scores = await loadScores();
             var found = false;
             var playerData = null;
             for (var i = 0; i < scores.length; i++) {
-                if (normalizeName(scores[i].name) === nameNorm) {
+                if (scores[i].ip === ip) {
                     found = true;
                     playerData = {
                         name: scores[i].name,
@@ -56,9 +56,8 @@ export default async (req, context) => {
                 return new Response(JSON.stringify({ error: "Datos faltantes" }), { status: 400, headers: headers });
             }
             var scores = await loadScores();
-            var nameNorm = normalizeName(input.name);
             for (var i = 0; i < scores.length; i++) {
-                if (normalizeName(scores[i].name) === nameNorm) {
+                if (scores[i].ip === ip) {
                     return new Response(JSON.stringify({ error: "Ya jugaste", success: false }), { headers: headers });
                 }
             }
@@ -66,6 +65,7 @@ export default async (req, context) => {
                 name: input.name.trim().substring(0, 20),
                 score: parseInt(input.score) || 0,
                 time: parseInt(input.time) || 0,
+                ip: ip,
                 timestamp: Math.floor(Date.now() / 1000)
             });
             await saveScores(scores);
@@ -84,11 +84,9 @@ export default async (req, context) => {
             return new Response(JSON.stringify({ podium: podium, total: scores.length }), { headers: headers });
         }
 
-        case "delete_name": {
-            var nameParam = url.searchParams.get("name") || "";
-            var nameNorm = normalizeName(nameParam);
+        case "delete_ip": {
             var scores = await loadScores();
-            var filtered = scores.filter(function (e) { return normalizeName(e.name) !== nameNorm; });
+            var filtered = scores.filter(function (e) { return e.ip !== ip; });
             await saveScores(filtered);
             return new Response(JSON.stringify({ success: true }), { headers: headers });
         }

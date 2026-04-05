@@ -216,24 +216,30 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Revisar localStorage al iniciar
-    if (loadProgress()) {
-        if (gameCompleted) {
-            showScreen('victory');
-            document.getElementById('victory-name').textContent = playerName;
-            document.getElementById('victory-score').textContent = totalScore;
+    // Check IP con el servidor
+    checkIP(function(result) {
+        if (result.played && result.data) {
+            showBlocked(result.data.name, result.data.score);
         } else {
-            showScreen('levels');
-            renderLevelSelect();
+            if (loadProgress()) {
+                if (gameCompleted) {
+                    showScreen('victory');
+                    document.getElementById('victory-name').textContent = playerName;
+                    document.getElementById('victory-score').textContent = totalScore;
+                } else {
+                    showScreen('levels');
+                    renderLevelSelect();
+                }
+            } else {
+                showScreen('splash');
+            }
         }
-    } else {
-        showScreen('splash');
-    }
+    });
 });
 
 // ==================== API ====================
-function checkName(name, callback) {
-    fetch(API_BASE + '?action=check_name&name=' + encodeURIComponent(name))
+function checkIP(callback) {
+    fetch(API_BASE + '?action=check_ip')
         .then(function(r) { return r.json(); })
         .then(function(data) {
             apiAvailable = true;
@@ -241,7 +247,18 @@ function checkName(name, callback) {
         })
         .catch(function() {
             apiAvailable = false;
-            callback({ played: false });
+            if (loadProgress()) {
+                if (gameCompleted) {
+                    showScreen('victory');
+                    document.getElementById('victory-name').textContent = playerName;
+                    document.getElementById('victory-score').textContent = totalScore;
+                } else {
+                    showScreen('levels');
+                    renderLevelSelect();
+                }
+            } else {
+                showScreen('splash');
+            }
         });
 }
 
@@ -325,23 +342,16 @@ function submitName() {
         return;
     }
 
-    // Verificar con el servidor si este nombre ya jugo
-    checkName(name, function(result) {
-        if (result.played && result.data) {
-            showBlocked(result.data.name, result.data.score);
-        } else {
-            playerName = name;
-            completedLevels = [];
-            totalScore = 0;
-            levelScores = [];
-            totalPenalties = 0;
-            gameStartTime = Date.now();
-            gameCompleted = false;
-            saveProgress();
-            showScreen('levels');
-            renderLevelSelect();
-        }
-    });
+    playerName = name;
+    completedLevels = [];
+    totalScore = 0;
+    levelScores = [];
+    totalPenalties = 0;
+    gameStartTime = Date.now();
+    gameCompleted = false;
+    saveProgress();
+    showScreen('levels');
+    renderLevelSelect();
 }
 
 function showBlocked(name, score) {
@@ -1297,7 +1307,7 @@ function setupInputHandlers() {
             gameStartTime = 0;
             gameCompleted = false;
             currentLevel = -1;
-            fetch(API_BASE + '?action=delete_name&name=' + encodeURIComponent(playerName), { method: 'POST' }).catch(function() {});
+            fetch(API_BASE + '?action=delete_ip', { method: 'POST' }).catch(function() {});
             showScreen('splash');
         }
     });
