@@ -1,5 +1,5 @@
 // ==============================================
-// MAZE PAINT - Desafio de Calculo
+// MAZE PAINT - Desafío de Cálculo
 // Motor del juego completo
 // ==============================================
 
@@ -155,6 +155,98 @@ var LEVELS = [
         start: [0, 0],
         color: '#4A7FC1',
         maxMoves: 25
+    },
+    {
+        // 18x8 - Cuadruple bucle enlazado con retorno en serpiente
+        // 78 celdas, 28 movimientos optimos
+        name: "El Titan",
+        grid: [
+            [1,1,1,1,1,1,1,1],
+            [1,0,0,0,0,0,0,1],
+            [1,1,1,0,1,1,1,1],
+            [0,0,1,0,1,0,0,0],
+            [0,0,1,0,1,0,0,0],
+            [1,1,1,0,1,1,1,1],
+            [1,0,0,0,0,0,0,1],
+            [1,1,1,0,1,1,1,1],
+            [0,0,1,0,1,0,0,0],
+            [0,0,1,0,1,0,0,0],
+            [1,1,1,0,1,1,1,1],
+            [1,0,0,0,0,0,0,1],
+            [1,1,1,0,1,1,1,1],
+            [0,0,1,0,1,0,0,0],
+            [0,0,1,0,1,0,0,0],
+            [1,1,1,0,1,1,1,1],
+            [1,0,0,0,0,0,0,1],
+            [1,1,1,1,1,1,1,1]
+        ],
+        start: [0, 0],
+        color: '#B84233',
+        maxMoves: 29
+    },
+    {
+        // 19x9 - Doble H-Room con serpientes y retrocesos
+        // 93 celdas, 31 movimientos optimos (3 de retroceso)
+        name: "La Odisea",
+        grid: [
+            [1,1,1,1,0,1,1,1,1],
+            [1,0,0,1,0,1,0,0,1],
+            [1,0,0,1,1,1,0,0,1],
+            [1,0,0,0,0,0,0,0,1],
+            [1,0,0,1,1,1,0,0,1],
+            [1,0,0,1,0,1,0,0,1],
+            [1,1,1,1,0,1,1,1,1],
+            [0,0,0,0,0,0,0,0,1],
+            [1,1,1,1,1,1,1,1,1],
+            [1,0,0,0,0,0,0,0,0],
+            [1,1,1,1,0,1,1,1,1],
+            [1,0,0,1,0,1,0,0,1],
+            [1,0,0,1,1,1,0,0,1],
+            [1,0,0,0,0,0,0,0,1],
+            [1,0,0,1,1,1,0,0,1],
+            [1,0,0,1,0,1,0,0,1],
+            [1,1,1,1,0,1,1,1,1],
+            [0,0,0,0,0,0,0,0,1],
+            [1,1,1,1,1,1,1,1,1]
+        ],
+        start: [0, 0],
+        color: '#1E6B50',
+        maxMoves: 32
+    },
+    {
+        // 25x9 - Triple H-Room con serpientes, el desafio definitivo
+        // 122 celdas, 40 movimientos optimos (4 de retroceso)
+        name: "El Imposible",
+        grid: [
+            [1,1,1,1,0,1,1,1,1],
+            [1,0,0,1,0,1,0,0,1],
+            [1,0,0,1,1,1,0,0,1],
+            [1,0,0,0,0,0,0,0,1],
+            [1,0,0,1,1,1,0,0,1],
+            [1,0,0,1,0,1,0,0,1],
+            [1,1,1,1,0,1,1,1,1],
+            [0,0,0,0,0,0,0,0,1],
+            [1,1,1,1,1,1,1,1,1],
+            [1,0,0,0,0,0,0,0,0],
+            [1,1,1,1,0,1,1,1,1],
+            [1,0,0,1,0,1,0,0,1],
+            [1,0,0,1,1,1,0,0,1],
+            [1,0,0,0,0,0,0,0,1],
+            [1,0,0,1,1,1,0,0,1],
+            [1,0,0,1,0,1,0,0,1],
+            [1,1,1,1,0,1,1,1,1],
+            [0,0,0,0,0,0,0,0,1],
+            [1,1,1,1,1,1,1,1,1],
+            [1,0,0,0,0,0,0,0,0],
+            [1,1,1,1,0,1,1,1,1],
+            [1,0,0,1,0,1,0,0,1],
+            [1,0,0,1,1,1,0,0,1],
+            [1,0,0,0,0,0,0,0,1],
+            [1,1,1,1,1,1,1,1,1]
+        ],
+        start: [0, 0],
+        color: '#6C3483',
+        maxMoves: 41
     }
 ];
 
@@ -221,6 +313,9 @@ document.addEventListener('DOMContentLoaded', function() {
             showScreen('victory');
             document.getElementById('victory-name').textContent = playerName;
             document.getElementById('victory-score').textContent = totalScore;
+        } else if (_savedActiveLevel !== null && _savedActiveLevelState) {
+            // Restaurar nivel en curso
+            resumeLevel(_savedActiveLevel, _savedActiveLevelState);
         } else {
             showScreen('levels');
             renderLevelSelect();
@@ -249,17 +344,32 @@ function fetchPodium(callback) {
 // ==================== LOCAL STORAGE ====================
 function saveProgress() {
     try {
-        sessionStorage.setItem('mazePaintCalculo', JSON.stringify({
+        var data = {
             playerName: playerName,
             completedLevels: completedLevels,
             totalScore: totalScore,
             levelScores: levelScores,
             totalPenalties: totalPenalties,
             gameStartTime: gameStartTime,
-            gameCompleted: gameCompleted
-        }));
+            gameCompleted: gameCompleted,
+            activeLevel: null,
+            activeLevelState: null
+        };
+        // Guardar estado del nivel en curso
+        if (currentLevel >= 0 && document.getElementById('screen-game').classList.contains('active')) {
+            data.activeLevel = currentLevel;
+            data.activeLevelState = {
+                painted: painted,
+                playerPos: playerPos,
+                moveCount: moveCount
+            };
+        }
+        sessionStorage.setItem('mazePaintCalculo', JSON.stringify(data));
     } catch (e) {}
 }
+
+var _savedActiveLevel = null;
+var _savedActiveLevelState = null;
 
 function loadProgress() {
     try {
@@ -272,6 +382,8 @@ function loadProgress() {
             totalPenalties = data.totalPenalties || 0;
             gameStartTime = data.gameStartTime || 0;
             gameCompleted = data.gameCompleted || false;
+            _savedActiveLevel = (data.activeLevel !== null && data.activeLevel !== undefined) ? data.activeLevel : null;
+            _savedActiveLevelState = data.activeLevelState || null;
             return true;
         }
     } catch (e) {}
@@ -331,6 +443,8 @@ function showAdminScreen() {
 }
 
 function showLevelSelect() {
+    currentLevel = -1;
+    saveProgress();
     showScreen('levels');
     renderLevelSelect();
 }
@@ -403,6 +517,25 @@ function startLevel(index) {
     playerPos = { r: level.start[0], c: level.start[1] };
     painted[playerPos.r][playerPos.c] = true;
     moveCount = 0;
+    isAnimating = false;
+
+    showScreen('game');
+    document.getElementById('level-title').textContent = 'Nivel ' + (index + 1);
+    document.getElementById('level-subtitle').textContent = level.name;
+    document.getElementById('max-moves').textContent = level.maxMoves;
+    document.documentElement.style.setProperty('--current-level-color', level.color);
+
+    updateMoveDisplay();
+    renderMaze();
+}
+
+function resumeLevel(index, savedState) {
+    currentLevel = index;
+    var level = LEVELS[index];
+
+    painted = savedState.painted;
+    playerPos = savedState.playerPos;
+    moveCount = savedState.moveCount;
     isAnimating = false;
 
     showScreen('game');
@@ -549,6 +682,7 @@ function handleMove(direction) {
         moveCount++;
         updateMoveDisplay();
         isAnimating = false;
+        saveProgress();
 
         if (isLevelComplete()) {
             setTimeout(celebrateAndShowQuestion, 350);
@@ -620,6 +754,10 @@ function calculateLevelScore() {
 // ==================== PREGUNTAS ====================
 function showQuestion() {
     var q = QUESTIONS[currentLevel];
+    if (!q) {
+        // Fallback si no hay pregunta para este nivel
+        q = { question: 'Nivel ' + (currentLevel + 1) + ' completado!', options: ['Continuar','','',''], correct: 0 };
+    }
     var modal = document.getElementById('modal-question');
 
     document.getElementById('question-level').textContent = 'Nivel ' + (currentLevel + 1);
