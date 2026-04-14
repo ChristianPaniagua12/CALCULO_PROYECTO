@@ -470,7 +470,7 @@ function renderLevelSelect() {
         if (isCompleted) inner += '<span class="level-check">&check;</span>';
         btn.innerHTML = inner;
 
-        if (isUnlocked) {
+        if (isUnlocked && !isCompleted) {
             btn.setAttribute('data-level', i);
             btn.addEventListener('click', function() {
                 var idx = parseInt(this.getAttribute('data-level'));
